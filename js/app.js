@@ -1030,10 +1030,26 @@ function render() {
 $("#btn-voltar").addEventListener("click", () => { if (history.length > 1) history.back(); else location.hash = "#/inicio"; });
 window.addEventListener("hashchange", render);
 
-carregarSessao().finally(() => {
-  render();
-  setTimeout(() => $("#splash")?.classList.add("hide"), 1400);
-});
+// Abertura: "Transformando vidas em 3 2 1 . . ." e só então mostra o app.
+function contagemAbertura() {
+  return new Promise((pronto) => {
+    const num = $("#contagem");
+    if (!num) return pronto();
+    let n = 3;
+    const passo = () => {
+      n--;
+      num.textContent = n;
+      num.style.animation = "none"; void num.offsetWidth; num.style.animation = "";
+      if (n > 1) return setTimeout(passo, 650);
+      num.insertAdjacentHTML("afterend", " <i>.</i> <i>.</i> <i>.</i>");
+      setTimeout(pronto, 1300);
+    };
+    setTimeout(passo, 750);
+  });
+}
+
+Promise.all([carregarSessao().finally(render), contagemAbertura()])
+  .finally(() => $("#splash")?.classList.add("hide"));
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
