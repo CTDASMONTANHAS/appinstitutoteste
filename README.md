@@ -1,26 +1,28 @@
 # App do Instituto Cultural das Montanhas — protótipo
 
-PWA (instalável no celular) em HTML, CSS e JavaScript puros, sem build.
+PWA (instalável no celular) em HTML, CSS e JavaScript puros, sem build, com Supabase como banco.
 
-**Visual:** grafite escuro com neumorfismo (relevo suave), botões em pílula, formas geométricas ao fundo e dourado só nos detalhes. Fonte Mulish.
+**Visual:** grafite escuro com neumorfismo, botões em pílula, curvas de nível e serras em camadas (identidade das montanhas), dourado só nos detalhes. Fonte Mulish. Logo oficial em `icones/`.
 
 ## Telas
-| Rota | Tela |
+| Aba / rota | O que tem |
 |---|---|
-| `#/inicio` | Destaque, atalhos (doar, inscrever, ouvidoria, instituto), inscrições abertas, projetos, impacto, eventos e últimas notícias |
-| `#/projetos` · `#/projeto/:id` | Projetos de cultura e esporte (filtro), detalhes, horários, local e notícias do projeto |
-| `#/inscricao/:id` | Formulário de inscrição gratuita |
-| `#/agenda` | Semana, filtros e eventos com lembrete |
-| `#/noticias` · `#/noticia/:slug` | **Notícias reais**, lidas ao vivo da API do blog do site |
-| `#/eu` | Login/cadastro → código de 4 dígitos → carteirinha digital, frequência, próximas aulas, avisos, van, justificar falta |
-| `#/checkin` | Check-in na aula (radar) |
-| `#/doar` | PIX (copiar chave), valores, FIA, Nota Premiada, patrocínio |
-| `#/ouvidoria` | Elogio/sugestão/dúvida/reclamação (anônimo ou não) e canais |
-| `#/sobre` | Missão, visão, valores, trajetória e transparência |
+| **Início** `#/inicio` | Destaque com a serra, atalhos (matrícula, calendário, van, doar), próxima aula, projetos, apresentações, montanhas, números e notícias |
+| **Aulas** `#/aulas` | Aulas do aluno por dia (respeita feriados/recessos), grade semanal, frequência ("altitude"), notícias dos projetos do aluno |
+| **Calendário** `#/calendario` | Calendário **letivo 2026** (marcos, feriados, recessos, reuniões) e **de apresentações**, com mês navegável |
+| **Van** `#/van` | Mapa de Afonso Cláudio com a van **em tempo real**, trajeto pelas ruas reais, paradas e previsão de chegada no seu ponto |
+| **Perfil** `#/perfil` | Carteirinhas dos alunos, nova matrícula, Instituto, notícias, doação, ouvidoria, privacidade |
+| `#/matricula` | Matrícula em 5 etapas: responsável → aluno → turma → transporte → termos (LGPD) |
+| `#/sobre` | História, missão, montanhas (Três Pontões, Pedra do Gato), linha do tempo, atendidos por bairro, parceiros, transparência |
+
+## Banco de dados e segurança
+- **Supabase** (Auth por código no e-mail + Postgres com RLS + Realtime para a van). Esquema em `supabase/schema.sql`.
+- Sem configuração em `js/config.js`, o app roda em **modo demonstração**.
+- Detalhes e passo a passo: **[SEGURANCA.md](SEGURANCA.md)**.
 
 ## O que é real e o que é demonstração
-- **Real:** notícias (API `institutoculturaldasmontanhas.org/blog/api/posts.php`), projetos, números, contatos, PIX e imagens do site oficial.
-- **Demonstração:** agenda, área do aluno (dados fictícios), formulários (não enviam nada) e textos de impacto da doação.
+- **Real:** notícias (API do blog do site), projetos, números, contatos, PIX, logo, trajeto da van pelas ruas (OpenStreetMap/OSRM).
+- **Demonstração:** horários das turmas (exceto vôlei), calendário letivo (proposta), apresentações futuras, aluno e frequência fictícios, movimento da van (acelerado).
 
 ## Rodar localmente
 ```bash
@@ -31,6 +33,10 @@ Acesse `http://localhost:8790`. Ao alterar JS/CSS, suba o `?v=N` no `index.html`
 ## Arquivos
 - `index.html` — casca do app, barra superior, abas e tela de abertura
 - `css/app.css` — tema e componentes
-- `js/data.js` — dados (projetos, agenda, aluno demo, linha do tempo)
+- `js/config.js` — URL e chave pública do Supabase (vazio = demonstração)
+- `js/db.js` — acesso a dados (Supabase ou demonstração)
+- `js/data.js` — projetos, turmas, calendários, montanhas
+- `js/rota.js` — trajeto real da van
 - `js/app.js` — rotas e telas
+- `supabase/schema.sql` — tabelas, regras RLS e função de matrícula
 - `manifest.json`, `sw.js`, `icons/` — PWA

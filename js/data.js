@@ -179,3 +179,69 @@ const CATEGORIAS = {
   "orquestra-jonice-tristao": "Orquestra Jônice Tristão", scfv: "SCFV", "sons-e-sonhos": "Sons e Sonhos",
   voleibol: "Voleibol", "voleibol-feminino": "Vôlei Feminino", "voleibol-misto": "Vôlei Misto",
 };
+
+/* ---------- Turmas (dias: 0=dom … 6=sáb). Horários ilustrativos, exceto vôlei. ---------- */
+const TURMAS = [
+  { id: "ojt-violino-b", projeto: "orquestra-jonice-tristao", nome: "Violino — Elementar B", dias: [1, 3], inicio: "14:00", fim: "15:30", local: "Sede do Instituto · Sala 2", professor: "Prof. Flávio Henrique", vagas: 4 },
+  { id: "ojt-cello", projeto: "orquestra-jonice-tristao", nome: "Violoncelo e Contrabaixo", dias: [2, 4], inicio: "14:00", fim: "15:30", local: "Sede do Instituto · Sala 3", professor: "Prof. Adriel Natan", vagas: 2 },
+  { id: "ojt-ensaio", projeto: "orquestra-jonice-tristao", nome: "Ensaio geral da orquestra", dias: [6], inicio: "09:00", fim: "11:00", local: "Sede do Instituto · Salão", professor: "Maestro Marcelo Dutra", vagas: 0, ensaio: true },
+  { id: "viola-caipira", projeto: "orquestra-de-viola", nome: "Viola caipira", dias: [5], inicio: "15:00", fim: "17:00", local: "Sede do Instituto", professor: "Prof. Beto Calil", vagas: 6 },
+  { id: "musi-infantil", projeto: "musicalizacao-infantil", nome: "Musicalização 4 a 6 anos", dias: [2], inicio: "09:00", fim: "10:00", local: "Sede do Instituto · Sala 1", professor: "Equipe de musicalização", vagas: 5 },
+  { id: "coral-infantil", projeto: "corais-das-montanhas", nome: "Coral Infantil", dias: [3], inicio: "15:30", fim: "17:00", local: "Sede do Instituto · Salão", professor: "Profa. Vanderleia", vagas: 8 },
+  { id: "coro-jovem", projeto: "corais-das-montanhas", nome: "Coro Jovem", dias: [4], inicio: "18:30", fim: "20:00", local: "Sede do Instituto · Salão", professor: "Regência do Coro Jovem", vagas: 6 },
+  { id: "piano", projeto: "corais-das-montanhas", nome: "Piano", dias: [1], inicio: "16:00", fim: "17:00", local: "Sede do Instituto · Sala 4", professor: "Prof. Vanderson", vagas: 1 },
+  { id: "sopros-rural", projeto: "musicalizacao-agricola", nome: "Sopros — núcleo rural", dias: [2, 4], inicio: "08:00", fim: "10:00", local: "Núcleo rural (conforme a comunidade)", professor: "Equipe de sopros", vagas: 7 },
+  { id: "jiu-jitsu", projeto: "artes-marciais", nome: "Jiu-jitsu", dias: [1, 3], inicio: "08:30", fim: "10:00", local: "Sede do Instituto · Tatame", professor: "Equipe de artes marciais", vagas: 5 },
+  { id: "volei-fem", projeto: "voleibol-feminino", nome: "Vôlei Feminino (8 a 17 anos)", dias: [4], inicio: "18:00", fim: "20:00", local: "Quadra Anadir Barone", professor: "Prof. Felipe", vagas: 3 },
+  { id: "volei-vni", projeto: "voleibol-misto", nome: "Vôlei Misto — Venda Nova", dias: [1, 4], inicio: "20:00", fim: "21:30", local: "Venda Nova do Imigrante", professor: "Prof. Gabriel Bozzi", vagas: 4 },
+  { id: "hidro-60", projeto: "hidroginastica", nome: "Hidroginástica 60+", dias: [2, 5], inicio: "07:30", fim: "08:30", local: "A confirmar", professor: "Centro de Treinamento", vagas: 20 },
+];
+
+/* ---------- Calendário letivo 2026 (proposta — confirmar com a coordenação) ---------- */
+const CALENDARIO_LETIVO = [
+  { inicio: "2026-01-01", titulo: "Confraternização Universal", tipo: "feriado" },
+  { inicio: "2026-02-16", fim: "2026-02-18", titulo: "Carnaval — sem aulas", tipo: "feriado" },
+  { inicio: "2026-02-23", titulo: "Início do 1º semestre", tipo: "marco" },
+  { inicio: "2026-04-03", titulo: "Sexta-feira Santa", tipo: "feriado" },
+  { inicio: "2026-04-13", titulo: "Nossa Senhora da Penha (ES)", tipo: "feriado" },
+  { inicio: "2026-04-21", titulo: "Tiradentes", tipo: "feriado" },
+  { inicio: "2026-05-01", titulo: "Dia do Trabalho", tipo: "feriado" },
+  { inicio: "2026-06-04", titulo: "Corpus Christi", tipo: "feriado" },
+  { inicio: "2026-07-10", titulo: "Fim do 1º semestre", tipo: "marco" },
+  { inicio: "2026-07-13", fim: "2026-07-24", titulo: "Recesso de julho", tipo: "recesso" },
+  { inicio: "2026-07-27", titulo: "Início do 2º semestre", tipo: "marco" },
+  { inicio: "2026-08-16", titulo: "Aniversário do Instituto", tipo: "marco" },
+  { inicio: "2026-09-07", titulo: "Independência do Brasil", tipo: "feriado" },
+  { inicio: "2026-10-12", titulo: "Nossa Senhora Aparecida", tipo: "feriado" },
+  { inicio: "2026-11-02", titulo: "Finados", tipo: "feriado" },
+  { inicio: "2026-11-20", titulo: "Consciência Negra", tipo: "feriado" },
+  { inicio: "2026-11-28", titulo: "Reunião de pais e responsáveis", tipo: "reuniao" },
+  { inicio: "2026-12-11", titulo: "Fim do 2º semestre", tipo: "marco" },
+  { inicio: "2026-12-14", fim: "2026-12-31", titulo: "Férias", tipo: "recesso" },
+  { inicio: "2026-12-25", titulo: "Natal", tipo: "feriado" },
+];
+
+/* ---------- Apresentações (as realizadas vêm das notícias do site) ---------- */
+const APRESENTACOES = [
+  { data: "2026-05-19", titulo: "Orquestra de Sopros na Festa do Afonsoclaudense Ausente", grupo: "Orquestra de Sopros", local: "Afonso Cláudio" },
+  { data: "2026-06-25", titulo: "Coro Jovem na feira livre", grupo: "Coro Jovem das Montanhas", local: "Feira livre de Afonso Cláudio" },
+  { data: "2026-07-04", titulo: "1º Festival de Cordas das Montanhas", grupo: "Orquestra Jônice Tristão", local: "Afonso Cláudio" },
+  { data: "2026-07-04", titulo: "IV Encontro de Coros Vale Música", grupo: "Coral Infantil e Coro Jovem", local: "Vale Música" },
+  { data: "2026-07-18", titulo: "31º Festival Internacional de Inverno", grupo: "Orquestra de Sopros", local: "Domingos Martins" },
+  { data: "2026-09-12", titulo: "Conecta Sicoob — Parque do China", grupo: "Orquestra Jônice Tristão", local: "Domingos Martins" },
+  { data: "2026-11-07", hora: "19:30", titulo: "Concerto de Rock em benefício do Instituto", grupo: "AFC 5 e convidados", local: "A definir" },
+  { data: "2026-11-21", hora: "19:00", titulo: "VIJAZZ — música instrumental nas montanhas", grupo: "Alunos e convidados", local: "Praça Aderbal Galvão" },
+  { data: "2026-12-12", hora: "18:00", titulo: "Concerto de fim de ano", grupo: "Orquestra Jônice Tristão", local: "Sede do Instituto" },
+  { data: "2026-12-19", hora: "19:00", titulo: "Cantata de Natal", grupo: "Corais das Montanhas", local: "Igreja Matriz" },
+];
+
+/* ---------- Montanhas e território ---------- */
+const MONTANHAS = [
+  { nome: "Três Pontões", texto: "Conjunto de pontões rochosos de Afonso Cláudio que dá nome à razão social do Instituto — Instituto Três Pontões de Ação Social e Cultural." },
+  { nome: "Pedra do Gato", texto: "Um dos marcos das montanhas de Afonso Cláudio, cenário do vídeo institucional gravado pelo Coro Jovem das Montanhas em 2026." },
+  { nome: "Região Serrana", texto: "Afonso Cláudio fica nas montanhas capixabas, entre vales, pontões e comunidades rurais. Muitos alunos vêm da zona rural — por isso a van gratuita." },
+];
+
+const PARCEIROS = ["Grupo Tristão", "Fundação Jônice Tristão", "EDP Espírito Santo", "OAB / CAAES", "Ifes Campus Vitória", "Ministério da Cultura", "Secult-ES", "CRAS Afonso Cláudio", "Grupo Coroa"];
+
+const BAIRROS_ATENDIDOS = [["São Vicente", 76], ["Grama", 58], ["Colina do Cruzeiro", 57], ["Centro", 42], ["Zona Rural", 41], ["Campo 21", 26], ["Campo 20", 25], ["Vila Nova", 23]];
