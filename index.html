@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Instituto das Montanhas</title>
+  <meta name="description" content="App do Instituto Cultural das Montanhas — projetos, agenda, notícias, área do aluno e doações.">
+  <meta name="theme-color" content="#23262b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css?v=1">
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="splash" id="splash" aria-hidden="true">
+      <div class="splash-logo">
+        <svg class="mount" viewBox="0 0 64 30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M2 28 22 6l10 11 8-8 22 19"/><path d="M17 12l5 4 4-3"/></svg>
+        <strong>Instituto</strong>
+        <span>das Montanhas</span>
+      </div>
+    </div>
+    <header class="topbar" id="topbar">
+      <button class="icon-btn" id="btn-voltar" aria-label="Voltar" hidden></button>
+      <a class="brand" href="#/inicio" id="brand">
+        <span class="brand-mark">ICM</span>
+        <span class="brand-text">Instituto <em>das Montanhas</em></span>
+      </a>
+      <h1 class="topbar-title" id="topbar-title" hidden></h1>
+      <button class="icon-btn" id="btn-avisos" aria-label="Avisos"></button>
+    </header>
+
+    <main id="view" class="view" tabindex="-1"></main>
+
+    <nav class="tabbar" id="tabbar" aria-label="Navegação principal">
+      <a href="#/inicio" data-tab="inicio"><i data-icon="home"></i><span>Início</span></a>
+      <a href="#/projetos" data-tab="projetos"><i data-icon="grid"></i><span>Projetos</span></a>
+      <a href="#/agenda" data-tab="agenda"><i data-icon="calendar"></i><span>Agenda</span></a>
+      <a href="#/noticias" data-tab="noticias"><i data-icon="news"></i><span>Notícias</span></a>
+      <a href="#/eu" data-tab="eu"><i data-icon="user"></i><span>Minha área</span></a>
+    </nav>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <script src="js/data.js?v=1"></script>
+  <script src="js/app.js?v=1"></script>
+</body>
+</html>
