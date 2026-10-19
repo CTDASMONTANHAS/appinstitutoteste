@@ -55,12 +55,19 @@ const DB = (() => {
       }
       const u = { email, nome: email.split("@")[0] };
       sess.set("usuario", u);
+      sess.set("saiu", null);
       if (!sess.get("alunos", null)) sess.set("alunos", [ALUNO_PADRAO]);
       return u;
     },
 
     async usuario() {
       if (sb) { const { data } = await sb.auth.getUser(); return data.user || null; }
+      // Demonstração: entra direto com a família de exemplo (a não ser que tenha saído).
+      // Com o Supabase ligado isso não acontece: Aulas e Van exigem login.
+      if (!sess.get("usuario", null) && !sess.get("saiu", false)) {
+        sess.set("usuario", { email: "familia.exemplo@demo", nome: "Família Exemplo" });
+        sess.set("alunos", [ALUNO_PADRAO]);
+      }
       return sess.get("usuario", null);
     },
 
@@ -68,6 +75,7 @@ const DB = (() => {
       if (sb) await sb.auth.signOut();
       sess.set("usuario", null);
       sess.set("alunos", null);
+      sess.set("saiu", true);
     },
 
     // Alunos sob responsabilidade do usuário logado (RLS filtra no servidor).
