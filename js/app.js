@@ -644,7 +644,7 @@ function telaPedirLogin(motivo, voltar) {
   view.innerHTML = `
     <div class="auth">
       <div class="auth-serra">${serra()}</div>
-      <img class="auth-logo" src="icons/logo-branca.png" alt="Instituto Cultural das Montanhas">
+      <img class="auth-logo" src="icons/logo-transparente.png" alt="Instituto Cultural das Montanhas">
       <h2>Área da família</h2>
       <p class="sub">${esc(motivo)}</p>
       <form id="f-email" novalidate>
@@ -704,7 +704,7 @@ function telaCodigo(email, voltar) {
 function telaPerfil() {
   if (!USUARIO) return telaPedirLogin("Entre para ver seus alunos, carteirinhas e matrículas.", "perfil");
   view.innerHTML = `
-    <div class="perfil-topo">${serra("serra-perfil")}<img src="icons/logo-branca.png" alt="Instituto Cultural das Montanhas"></div>
+    <div class="perfil-topo">${serra("serra-perfil")}<img src="icons/logo-transparente.png" alt="Instituto Cultural das Montanhas"></div>
     <section class="section">
       <div class="section-head"><h2>Meus alunos</h2></div>
       ${ALUNOS.length ? ALUNOS.map((a) => `
