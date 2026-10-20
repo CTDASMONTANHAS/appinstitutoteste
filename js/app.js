@@ -1005,6 +1005,13 @@ function render() {
   view.classList.remove("enter"); void view.offsetWidth; view.classList.add("enter");
 }
 
+// Sem zoom de pinça na página (o iPhone ignora user-scalable=no). O mapa continua com zoom próprio.
+["gesturestart", "gesturechange", "gestureend"].forEach((ev) =>
+  document.addEventListener(ev, (e) => { if (!e.target.closest?.(".leaflet-container")) e.preventDefault(); }, { passive: false }));
+document.addEventListener("touchmove", (e) => {
+  if (e.touches.length > 1 && !e.target.closest(".leaflet-container")) e.preventDefault();
+}, { passive: false });
+
 $("#btn-voltar").addEventListener("click", () => { if (history.length > 1) history.back(); else location.hash = "#/inicio"; });
 window.addEventListener("hashchange", render);
 

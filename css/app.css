@@ -610,3 +610,9 @@ p { line-height: 1.6; }
 .serra-hero path:nth-child(3), .serra-cover path:nth-child(3), .serra-perfil path:nth-child(3), .rodape-serra .serra path:nth-child(3), .auth-serra .serra path:nth-child(3) { opacity: 1; }
 .hero-serra { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .mapa .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) grayscale(1) brightness(.78) contrast(.95); }
+
+/* Sem zoom no app: bloqueia o toque duplo e evita o zoom automático do iPhone em campos (fonte >= 16px). */
+html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+a, button, input, select, textarea, label { touch-action: manipulation; }
+input, select, textarea { font-size: 16px !important; }
+.otp input { font-size: 22px !important; }
