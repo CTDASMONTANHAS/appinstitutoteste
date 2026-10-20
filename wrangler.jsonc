@@ -1,0 +1,11 @@
+// Publicação no Cloudflare Workers (somente arquivos estáticos).
+{
+  "name": "appinstitutodasmontanhas",
+  "compatibility_date": "2026-09-01",
+  // Monta dist/ só com os arquivos do app antes de publicar.
+  "build": { "command": "bash build.sh" },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
