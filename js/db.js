@@ -65,7 +65,7 @@ const DB = (() => {
       return u;
     },
 
-    /* ----- Rotas da van (monitora/coordenação) ----- */
+    /* ----- Rotas da van (transporte/coordenação) ----- */
     async rotas() {
       if (!sb) return sess.get("rotas", [{ id: "norte", nome: ROTA_VAN.nome, em_andamento: false, iniciada_em: null }]);
       const { data, error } = await sb.from("rotas").select("id, nome, em_andamento, iniciada_em").eq("ativa", true).order("nome");
@@ -88,14 +88,14 @@ const DB = (() => {
       const { error } = await sb.rpc("encerrar_rota", { p_rota: id });
       if (error) throw new Error("Não foi possível encerrar a rota.");
     },
-    // Última posição recebida (para a monitora conferir se o GPS está chegando).
+    // Última posição recebida (para o transporte conferir se o GPS está chegando).
     async ultimaPosicao() {
       if (!sb) return null;
       const { data } = await sb.from("van_posicao_atual").select("rota_id, atualizado_em").order("atualizado_em", { ascending: false }).limit(1).maybeSingle();
       return data;
     },
 
-    // Papel do usuário logado (responsavel, professor, monitora, coordenacao).
+    // Papel do usuário logado (responsavel, professor, transporte, coordenacao).
     async meuPapel() {
       if (!sb) return "responsavel";
       const { data: u } = await sb.auth.getUser();

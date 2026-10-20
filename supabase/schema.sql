@@ -8,7 +8,7 @@
 create extension if not exists pgcrypto with schema extensions;
 
 -- ---------- Papéis ----------
-create type papel_usuario as enum ('responsavel', 'professor', 'monitora', 'coordenacao');
+create type papel_usuario as enum ('responsavel', 'professor', 'transporte', 'coordenacao');
 
 create table public.perfis (
   id uuid primary key references auth.users (id) on delete cascade,
@@ -112,7 +112,7 @@ create table public.van_posicao_atual (
   lng double precision not null check (lng between -41.4 and -40.8),
   em_rota boolean not null default false,
   atualizado_em timestamptz not null default now(),
-  monitora_id uuid references public.perfis (id)
+  transporte_id uuid references public.perfis (id)
 );
 
 -- Verificações de vínculo (security definer: evitam recursão entre políticas).
@@ -151,7 +151,7 @@ create table public.van_dispositivos (
 );
 
 -- Gera o código de um aparelho novo. Mostra o código UMA vez; no banco fica só o hash.
--- Rodar no SQL Editor:  select public.criar_dispositivo_van('norte', 'Celular da monitora');
+-- Rodar no SQL Editor:  select public.criar_dispositivo_van('norte', 'Celular da transporte');
 create or replace function public.criar_dispositivo_van(p_rota text, p_nome text) returns text
 language plpgsql security definer set search_path = public as $$
 declare v_token text := encode(extensions.gen_random_bytes(24), 'hex');
@@ -209,16 +209,16 @@ create policy avisos_ler on public.avisos for select using (
   auth.uid() is not null and (turma_id is null or public.eh_equipe() or public.tenho_aluno_na_turma(turma_id)));
 create policy avisos_equipe on public.avisos for all using (public.eh_equipe()) with check (public.eh_equipe());
 
--- Van: posição só para famílias com aluno ATIVO que usa a van (e equipe/monitora),
+-- Van: posição só para famílias com aluno ATIVO que usa a van (e equipe/transporte),
 -- e só enquanto o aparelho está enviando (até 3 min sem sinal = fora de rota).
 -- A gravação normal é feita pela função van-posicao (aparelho autenticado por código).
 create policy van_ler on public.van_posicao_atual for select using (
-  public.eh_equipe() or public.meu_papel() = 'monitora'
+  public.eh_equipe() or public.meu_papel() = 'transporte'
   or (em_rota and atualizado_em > now() - interval '3 minutes' and public.tenho_aluno_na_van()));
-create policy van_monitora_ins on public.van_posicao_atual for insert
-  with check (public.meu_papel() = 'monitora' and monitora_id = auth.uid());
-create policy van_monitora_upd on public.van_posicao_atual for update
-  using (public.meu_papel() = 'monitora') with check (public.meu_papel() = 'monitora' and monitora_id = auth.uid());
+create policy van_transporte_ins on public.van_posicao_atual for insert
+  with check (public.meu_papel() = 'transporte' and transporte_id = auth.uid());
+create policy van_transporte_upd on public.van_posicao_atual for update
+  using (public.meu_papel() = 'transporte') with check (public.meu_papel() = 'transporte' and transporte_id = auth.uid());
 
 -- Obs.: as funções auxiliares retornam falso para visitantes (auth.uid() nulo),
 -- por isso podem continuar executáveis por anon (turmas e calendário são públicos).

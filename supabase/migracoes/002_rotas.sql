@@ -1,8 +1,8 @@
 -- =====================================================================
--- 002 — Rotas com início e fim controlados pela monitora (ou coordenação)
--- Rodar no SQL Editor DEPOIS do schema.sql e do seed.sql.
+-- 002 — Rotas com início e fim controlados pelo transporte (ou coordenação)
+-- Rodar no SQL Editor DEPOIS do schema.sql, do seed.sql e do 003_transporte.sql.
 -- Regras:
---  * Só a monitora/coordenação inicia ou encerra rota (pelas funções abaixo).
+--  * Só o transporte/coordenação inicia ou encerra rota (pelas funções abaixo).
 --  * Encerrar apaga a posição da van: o mapa das famílias fica vazio na hora.
 --  * Sem rota em andamento, o receptor de GPS ignora o que o celular enviar.
 --  * Uma van por vez: iniciar uma rota encerra qualquer outra em andamento.
@@ -14,7 +14,7 @@ create table if not exists public.rotas (
   ativa boolean not null default true,
   em_andamento boolean not null default false,
   iniciada_em timestamptz,
-  monitora_id uuid references public.perfis (id)
+  transporte_id uuid references public.perfis (id)
 );
 
 insert into public.rotas (id, nome) values ('norte', 'Rota Norte → Sede')
@@ -33,7 +33,7 @@ $$;
 
 create or replace function public.pode_operar_van() returns boolean
 language sql stable security definer set search_path = public as $$
-  select coalesce(public.meu_papel() in ('monitora', 'coordenacao'), false)
+  select coalesce(public.meu_papel() in ('transporte', 'coordenacao'), false)
 $$;
 
 create or replace function public.iniciar_rota(p_rota text) returns void
@@ -44,7 +44,7 @@ begin
   -- uma van por vez: encerra outras rotas e apaga posições antigas
   update rotas set em_andamento = false, iniciada_em = null where em_andamento and id <> p_rota;
   delete from van_posicao_atual where rota_id <> p_rota;
-  update rotas set em_andamento = true, iniciada_em = now(), monitora_id = auth.uid() where id = p_rota;
+  update rotas set em_andamento = true, iniciada_em = now(), transporte_id = auth.uid() where id = p_rota;
 end $$;
 
 create or replace function public.encerrar_rota(p_rota text) returns void
@@ -61,7 +61,7 @@ grant execute on function public.iniciar_rota(text), public.encerrar_rota(text) 
 -- Famílias só veem a van com a rota em andamento (além das regras anteriores).
 drop policy if exists van_ler on public.van_posicao_atual;
 create policy van_ler on public.van_posicao_atual for select using (
-  public.eh_equipe() or public.meu_papel() = 'monitora'
+  public.eh_equipe() or public.meu_papel() = 'transporte'
   or (em_rota and public.rota_em_andamento(rota_id)
       and atualizado_em > now() - interval '3 minutes' and public.tenho_aluno_na_van())
 );

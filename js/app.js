@@ -151,7 +151,7 @@ let USUARIO = null;
 let ALUNOS = [];
 let alunoSel = 0;
 let PAPEL = null;
-const ehEquipe = () => PAPEL === "coordenacao" || PAPEL === "monitora";
+const ehEquipe = () => PAPEL === "coordenacao" || PAPEL === "transporte";
 
 async function carregarSessao() {
   USUARIO = await DB.usuario();
@@ -536,7 +536,7 @@ async function telaVan() {
   });
 }
 
-/* ----- Painel da monitora: iniciar e encerrar rota ----- */
+/* ----- Painel do transporte: iniciar e encerrar rota ----- */
 async function painelRota() {
   const box = $("#painel-rota");
   if (!box) return;
@@ -548,7 +548,7 @@ async function painelRota() {
 
   if (!andamento) {
     box.innerHTML = `
-      <span class="eyebrow">Monitora · rota parada</span>
+      <span class="eyebrow">Transporte · rota parada</span>
       <div class="field mt-12" style="margin-bottom:14px"><label for="sel-rota">Qual rota vai fazer?</label>
         <select id="sel-rota">${rotas.map((r) => `<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join("")}</select></div>
       <button class="btn gold block" id="btn-iniciar">${icon("flag")} Iniciar rota</button>
@@ -737,7 +737,7 @@ function telaPerfil() {
   if (!USUARIO) return telaPedirLogin("Entre para ver seus alunos, carteirinhas e matrículas.", "perfil");
   view.innerHTML = `
     <div class="perfil-topo">${serra("serra-perfil")}<img src="icons/logo-transparente.png" alt="Instituto Cultural das Montanhas"></div>
-    ${ehEquipe() ? `<div class="card gold"><span class="eyebrow">Acesso da equipe</span><div style="font-weight:800;margin-top:6px">${PAPEL === "coordenacao" ? "Coordenação" : "Monitora da van"}</div><p class="small muted" style="margin:4px 0 12px">Você vê a van em tempo real e pode iniciar e encerrar as rotas.</p><a class="btn gold block" href="#/van">${icon("bus")} Operar a van</a></div>` : ""}
+    ${ehEquipe() ? `<div class="card gold"><span class="eyebrow">Acesso da equipe</span><div style="font-weight:800;margin-top:6px">${PAPEL === "coordenacao" ? "Coordenação" : "Transporte"}</div><p class="small muted" style="margin:4px 0 12px">Você vê a van em tempo real e pode iniciar e encerrar as rotas.</p><a class="btn gold block" href="#/van">${icon("bus")} Operar a van</a></div>` : ""}
     <section class="section">
       <div class="section-head"><h2>Meus alunos</h2></div>
       ${ALUNOS.length ? ALUNOS.map((a) => `

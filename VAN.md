@@ -1,10 +1,10 @@
 # Van em tempo real — como ligar
 
 ```
-Celular da monitora (Traccar Client) ──► função van-posicao (Supabase) ──► app das famílias
+Celular do transporte (Traccar Client) ──► função van-posicao (Supabase) ──► app das famílias
 ```
 
-- A monitora **inicia a rota no app** (aba Van) e liga o Traccar → a van aparece para as famílias.
+- O transporte **inicia a rota no app** (aba Van) e liga o Traccar → a van aparece para as famílias.
 - Ao **encerrar a rota no app**, a posição é apagada e a van **some do mapa na hora**.
 - Sem rota iniciada, o GPS recebido é **ignorado** (Traccar esquecido ligado não expõe nada).
 - Se o sinal parar por **3 minutos** durante a rota, a van também some (fora de rota).
@@ -15,7 +15,8 @@ Celular da monitora (Traccar Client) ──► função van-posicao (Supabase) �
 No Supabase → **SQL Editor**, rode nesta ordem:
 1. `supabase/schema.sql`
 2. `supabase/seed.sql`
-3. `supabase/migracoes/002_rotas.sql` (rotas com iniciar/encerrar)
+3. `supabase/migracoes/003_transporte.sql` (papel "transporte")
+4. `supabase/migracoes/002_rotas.sql` (rotas com iniciar/encerrar)
 
 ## 2. Receptor do GPS (uma vez)
 Supabase → **Edge Functions** → **Deploy a new function** → **Via editor**:
@@ -26,13 +27,13 @@ Supabase → **Edge Functions** → **Deploy a new function** → **Via editor**
 ## 3. Código do aparelho (um por celular)
 No **SQL Editor**:
 ```sql
-select public.criar_dispositivo_van('norte', 'Celular da monitora');
+select public.criar_dispositivo_van('norte', 'Celular do transporte');
 ```
-Aparece um código de 48 caracteres. **Ele só aparece uma vez** — anote direto no celular da monitora (passo 4). No banco fica só uma versão embaralhada (hash).
+Aparece um código de 48 caracteres. **Ele só aparece uma vez** — anote direto no celular do transporte (passo 4). No banco fica só uma versão embaralhada (hash).
 
-Para bloquear um celular perdido: `update public.van_dispositivos set ativo = false where nome = 'Celular da monitora';`
+Para bloquear um celular perdido: `update public.van_dispositivos set ativo = false where nome = 'Celular do transporte';`
 
-## 4. Celular da monitora
+## 4. Celular do transporte
 1. Instale **Traccar Client** (Play Store / App Store, gratuito).
 2. Configure:
    - **Device identifier**: o código do passo 3
@@ -42,14 +43,14 @@ Para bloquear um celular perdido: `update public.van_dispositivos set ativo = fa
 3. Permita localização **"o tempo todo"** e desative a economia de bateria para o Traccar.
 4. No dia a dia: **app → Van → escolher a rota → Iniciar rota → ligar o Traccar**. No fim: **Encerrar rota → desligar o Traccar**.
 
-## 4b. Login da monitora (uma vez)
-1. Supabase → **Authentication → Users → Add user**: e-mail `monitora@app.institutoculturaldasmontanhas.org`, senha com 6+ caracteres, **Auto Confirm**.
+## 4b. Login do transporte (uma vez)
+1. Supabase → **Authentication → Users → Add user**: e-mail `transporte@app.institutoculturaldasmontanhas.org`, senha com 6+ caracteres, **Auto Confirm**.
 2. No **SQL Editor**:
 ```sql
-update public.perfis set papel = 'monitora', nome = 'Monitora da van'
-where id = (select id from auth.users where email = 'monitora@app.institutoculturaldasmontanhas.org');
+update public.perfis set papel = 'transporte', nome = 'Transporte'
+where id = (select id from auth.users where email = 'transporte@app.institutoculturaldasmontanhas.org');
 ```
-No app ela entra com o usuário **monitora**.
+No app, entra com o usuário **transporte**.
 
 Para cadastrar outra rota: `insert into public.rotas (id, nome) values ('sul', 'Rota Sul → Sede');`
 
