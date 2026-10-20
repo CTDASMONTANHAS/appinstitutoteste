@@ -5,7 +5,7 @@
  * e some ao fechar o app — dados pessoais não ficam guardados no aparelho.
  */
 const DB = (() => {
-  const temSupabase = Boolean(APP_CONFIG.supabaseUrl && APP_CONFIG.supabaseAnonKey && window.supabase);
+  const temSupabase = Boolean(APP_CONFIG.usarSupabase && APP_CONFIG.supabaseUrl && APP_CONFIG.supabaseAnonKey && window.supabase);
   const sb = temSupabase
     ? window.supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseAnonKey, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: "pkce" },
