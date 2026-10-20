@@ -448,30 +448,26 @@ function carregarLeaflet() {
 
 async function telaVan() {
   if (!USUARIO) return telaPedirLogin("A localização da van é exclusiva para famílias de alunos matriculados que usam o transporte.", "van");
-  const aluno = ALUNOS.find((a) => a.usaVan && a.status === "ativa") || (ehEquipe() ? { pontoVan: "Sede do Instituto" } : null);
+  const aluno = ALUNOS.find((a) => a.usaVan && a.status === "ativa") || (ehEquipe() ? { pontoVan: null } : null);
   if (!aluno) {
     view.innerHTML = `<div class="auth"><div class="success"><div class="ok">${icon("bus")}</div><h2>Van indisponível</h2>
       <p class="muted">O mapa aparece para alunos com matrícula ativa que usam o transporte gratuito. Para incluir a van, fale com a secretaria.</p>
       <a class="btn block" style="margin-top:22px" href="${waLink("Olá! Gostaria de incluir o transporte (van) para meu filho(a).")}" target="_blank" rel="noopener noreferrer">${icon("whatsapp")} Falar com a secretaria</a></div></div>`;
     return;
   }
-  const paradas = ROTA_VAN.paradas;
-  const minha = paradas.find((p) => p.nome === aluno.pontoVan) || paradas[1];
-  const segPorPonto = ROTA_VAN.duracaoSeg / (ROTA_VAN.pontos.length - 1);
-
   view.innerHTML = `
     <div class="mapa-wrap"><div id="mapa" class="mapa" role="img" aria-label="Mapa de Afonso Cláudio com a posição da van"></div>
       <div class="mapa-status" id="van-status">${icon("bus")}<span>Localizando a van…</span></div></div>
     ${ehEquipe() ? `<div class="card painel-rota mt-16" id="painel-rota"><div class="skeleton" style="height:90px"></div></div>` : ""}
     <div class="card eta-card mt-16">
-      <div><span class="eyebrow">Seu ponto · ${esc(minha.nome)}</span><div class="eta-num" id="eta">—</div><div class="small muted" id="eta-sub">calculando</div></div>
+      <div><span class="eyebrow" id="eta-ponto">${aluno.pontoVan ? `Seu ponto · ${esc(aluno.pontoVan)}` : "Destino"}</span><div class="eta-num" id="eta">—</div><div class="small muted" id="eta-sub">aguardando a van</div></div>
       <div class="eta-ico">${icon("pin")}</div>
     </div>
     <section class="section">
-      <div class="section-head"><h2>${esc(ROTA_VAN.nome)}</h2><span class="small muted">${(ROTA_VAN.distanciaM / 1000).toFixed(1)} km</span></div>
-      <ol class="paradas" id="paradas">${paradas.map((p) => `<li data-i="${p.i}" class="${p === minha ? "minha" : ""}"><i></i><div><b>${esc(p.nome)}</b><span></span></div></li>`).join("")}</ol>
+      <div class="section-head"><h2 id="rota-nome"></h2><span class="small muted" id="rota-km"></span></div>
+      <ol class="paradas" id="paradas"></ol>
     </section>
-    <div class="proto-note">${icon("shield")}<span>A posição da van só é visível para famílias de alunos ativos que usam o transporte, e só enquanto a van está em rota. O app não guarda histórico de trajetos.${DB.modo === "demo" ? " <b>Demonstração:</b> a van percorre as ruas reais em velocidade acelerada." : ""}</span></div>`;
+    <div class="proto-note">${icon("shield")}<span>A posição da van só é visível para famílias de alunos ativos que usam o transporte, e só enquanto a rota está em andamento. O app não guarda histórico de trajetos. Paradas intermediárias provisórias.${DB.modo === "demo" ? " <b>Demonstração:</b> a van percorre as ruas reais em velocidade acelerada." : ""}</span></div>`;
 
   try { await carregarLeaflet(); } catch {
     $("#mapa").innerHTML = `<p class="muted small" style="padding:20px">Não foi possível carregar o mapa. Verifique sua conexão.</p>`;
@@ -486,24 +482,40 @@ async function telaVan() {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
   }).addTo(mapa);
   L.control.zoom({ position: "bottomright" }).addTo(mapa);
-  const linha = L.polyline(ROTA_VAN.pontos, { color: "#c9a55a", weight: 4, opacity: .85 }).addTo(mapa);
-  mapa.fitBounds(linha.getBounds(), { padding: [24, 24] });
-  paradas.forEach((p) => {
-    const sede = p.nome === "Sede do Instituto";
-    L.marker(ROTA_VAN.pontos[p.i], {
-      icon: L.divIcon({ className: "", html: `<span class="pin-parada ${p === minha ? "minha" : ""} ${sede ? "sede" : ""}"></span>`, iconSize: [16, 16], iconAnchor: [8, 8] }),
-      title: p.nome,
-    }).addTo(mapa).bindTooltip(p.nome, { direction: "top", offset: [0, -8] });
-  });
-  const vanMarker = L.marker(ROTA_VAN.pontos[0], {
+  const vanMarker = L.marker([-20.079, -41.123], {
     icon: L.divIcon({ className: "", html: `<span class="pin-van">${icon("bus")}</span>`, iconSize: [40, 40], iconAnchor: [20, 20] }),
     zIndexOffset: 1000, title: "Van do Instituto",
-  }).addTo(mapa);
+  });
 
-  // Índice do ponto mais próximo (para posições reais vindas do Supabase).
+  // Desenha a rota (ida ou volta) conforme a que estiver em andamento.
+  let rotaId = null, rota, paradas, minha, segPorPonto, linha = null, marcadores = [];
+  const desenharRota = (id) => {
+    if (id === rotaId || !ROTAS_VAN[id]) return;
+    rotaId = id; rota = ROTAS_VAN[id]; paradas = rota.paradas;
+    // Família: o ponto do aluno. Equipe: o destino final da rota.
+    minha = paradas.find((p) => p.nome === aluno.pontoVan) || paradas[paradas.length - 1];
+    segPorPonto = rota.duracaoSeg / (rota.pontos.length - 1);
+    linha?.remove(); marcadores.forEach((m) => m.remove()); marcadores = [];
+    linha = L.polyline(rota.pontos, { color: "#c9a55a", weight: 4, opacity: .85 }).addTo(mapa);
+    mapa.fitBounds(linha.getBounds(), { padding: [24, 24] });
+    paradas.forEach((p) => {
+      const sede = p.nome.startsWith("Sede");
+      marcadores.push(L.marker(rota.pontos[p.i], {
+        icon: L.divIcon({ className: "", html: `<span class="pin-parada ${p === minha ? "minha" : ""} ${sede ? "sede" : ""}"></span>`, iconSize: [16, 16], iconAnchor: [8, 8] }),
+        title: p.nome,
+      }).addTo(mapa).bindTooltip(p.nome, { direction: "top", offset: [0, -8] }));
+    });
+    $("#rota-nome").textContent = rota.nome;
+    $("#rota-km").textContent = `${(rota.distanciaM / 1000).toFixed(1)} km`;
+    $("#eta-ponto").textContent = aluno.pontoVan ? `Seu ponto · ${minha.nome}` : `Destino · ${minha.nome}`;
+    $("#paradas").innerHTML = paradas.map((p) => `<li data-i="${p.i}" class="${p === minha ? "minha" : ""}"><i></i><div><b>${esc(p.nome)}</b><span></span></div></li>`).join("");
+  };
+  desenharRota(ROTA_PADRAO);
+
+  // Índice do ponto mais próximo da rota (para posições reais vindas do Supabase).
   const indiceMaisProximo = (lat, lng) => {
     let bi = 0, bd = Infinity;
-    ROTA_VAN.pontos.forEach(([a, b], i) => { const d = (a - lat) ** 2 + (b - lng) ** 2; if (d < bd) { bd = d; bi = i; } });
+    rota.pontos.forEach(([a, b], i) => { const d = (a - lat) ** 2 + (b - lng) ** 2; if (d < bd) { bd = d; bi = i; } });
     return bi;
   };
 
@@ -512,8 +524,16 @@ async function telaVan() {
   pararVan = DB.assinarVan((pos) => {
     if (!$("#mapa")) return;
     const st = $("#van-status");
-    if (!pos.em_rota) { st.innerHTML = `${icon("bus")}<span>Van fora de rota no momento</span>`; return; }
-    vanMarker.setLatLng([pos.lat, pos.lng]);
+    if (!pos.em_rota) {
+      vanMarker.remove();
+      st.innerHTML = `${icon("bus")}<span>Van fora de rota no momento</span>`;
+      $("#eta").textContent = "—";
+      $("#eta-sub").textContent = "aguardando a van";
+      view.querySelectorAll("#paradas li").forEach((li) => { li.classList.remove("feita"); li.querySelector("span").textContent = ""; });
+      return;
+    }
+    if (pos.rota_id) desenharRota(pos.rota_id);
+    vanMarker.setLatLng([pos.lat, pos.lng]).addTo(mapa);
     const idx = pos.indice ?? indiceMaisProximo(pos.lat, pos.lng);
     const seg = Math.round((Date.now() - new Date(pos.atualizado_em)) / 1000);
     st.innerHTML = `<span class="ao-vivo"></span><span>Ao vivo · atualizado ${seg < 5 ? "agora" : `há ${seg}s`}</span>`;
@@ -526,7 +546,7 @@ async function telaVan() {
       $("#eta-sub").textContent = prox ? `próxima parada: ${prox.nome}` : "";
     } else {
       $("#eta").textContent = "Já passou";
-      $("#eta-sub").textContent = `a van seguiu para a ${paradas[paradas.length - 1].nome}`;
+      $("#eta-sub").textContent = `a van seguiu para ${paradas[paradas.length - 1].nome}`;
     }
     view.querySelectorAll("#paradas li").forEach((li) => {
       const i = Number(li.dataset.i);
@@ -611,7 +631,7 @@ function telaMatricula(params) {
       <div id="m-turmas" class="turma-opcoes"></div>`,
     3: () => `
       <div class="field"><label>Vai usar a van gratuita?</label><div class="pills" data-bool="usaVan"><button type="button" class="${d.usaVan ? "on" : ""}" data-v="1">Sim</button><button type="button" class="${!d.usaVan ? "on" : ""}" data-v="0">Não</button></div></div>
-      <div class="field" id="m-ponto-wrap" ${d.usaVan ? "" : "hidden"}><label for="m-ponto">Ponto de embarque</label><select id="m-ponto">${ROTA_VAN.paradas.filter((p) => p.nome !== "Sede do Instituto").map((p) => `<option ${d.pontoVan === p.nome ? "selected" : ""}>${esc(p.nome)}</option>`).join("")}</select></div>`,
+      <div class="field" id="m-ponto-wrap" ${d.usaVan ? "" : "hidden"}><label for="m-ponto">Ponto de embarque</label><select id="m-ponto">${ROTAS_VAN[ROTA_PADRAO].paradas.filter((p) => !p.nome.startsWith("Sede")).map((p) => `<option ${d.pontoVan === p.nome ? "selected" : ""}>${esc(p.nome)}</option>`).join("")}</select></div>`,
     4: () => `
       <label class="check"><input type="checkbox" id="m-lgpd" ${d.aceiteLgpd ? "checked" : ""}><span>Li e aceito o <a href="#/privacidade" target="_blank">termo de uso de dados</a>. Os dados servem só para a matrícula, frequência, transporte e prestação de contas dos projetos (LGPD).</span></label>
       <label class="check"><input type="checkbox" id="m-img" ${d.autorizaImagem ? "checked" : ""}><span>Autorizo o uso de imagem do aluno em fotos e vídeos de divulgação do Instituto. <em>(opcional)</em></span></label>

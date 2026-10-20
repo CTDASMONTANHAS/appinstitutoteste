@@ -67,7 +67,7 @@ const DB = (() => {
 
     /* ----- Rotas da van (transporte/coordenação) ----- */
     async rotas() {
-      if (!sb) return sess.get("rotas", [{ id: "norte", nome: ROTA_VAN.nome, em_andamento: false, iniciada_em: null }]);
+      if (!sb) return sess.get("rotas", Object.entries(ROTAS_VAN).map(([id, r]) => ({ id, nome: r.nome, em_andamento: false, iniciada_em: null })));
       const { data, error } = await sb.from("rotas").select("id, nome, em_andamento, iniciada_em").eq("ativa", true).order("nome");
       if (error) throw new Error("Não foi possível carregar as rotas.");
       return data;
@@ -190,14 +190,16 @@ const DB = (() => {
           .subscribe();
         return () => { ativo = false; clearInterval(timer); sb.removeChannel(canal); };
       }
-      const pts = ROTA_VAN.pontos;
-      const ciclo = ROTA_VAN.duracaoSeg * 1000 * 0.25; // demo acelerado: volta completa em ~6 min
+      // Demo: anda pela rota iniciada no painel (ou pela rota padrão).
       const tick = () => {
+        const rotaId = (sess.get("rotas", []).find((r) => r.em_andamento) || { id: ROTA_PADRAO }).id;
+        const pts = ROTAS_VAN[rotaId].pontos;
+        const ciclo = ROTAS_VAN[rotaId].duracaoSeg * 1000 * 0.25; // acelerado: volta completa em ~6 min
         const f = (Date.now() % ciclo) / ciclo;
         const pos = f * (pts.length - 1);
         const i = Math.floor(pos), t = pos - i;
         const a = pts[i], b = pts[Math.min(i + 1, pts.length - 1)];
-        callback({ lat: a[0] + (b[0] - a[0]) * t, lng: a[1] + (b[1] - a[1]) * t, indice: pos, atualizado_em: new Date().toISOString(), em_rota: true });
+        callback({ rota_id: rotaId, lat: a[0] + (b[0] - a[0]) * t, lng: a[1] + (b[1] - a[1]) * t, indice: pos, atualizado_em: new Date().toISOString(), em_rota: true });
       };
       tick();
       const id = setInterval(tick, 1000);

@@ -17,7 +17,7 @@ create table if not exists public.rotas (
   transporte_id uuid references public.perfis (id)
 );
 
-insert into public.rotas (id, nome) values ('norte', 'Rota Norte → Sede')
+insert into public.rotas (id, nome) values ('sede-grama', 'Sede (Campo 21) → Grama'), ('grama-sede', 'Grama → Sede (Campo 21)')
 on conflict (id) do nothing;
 
 alter table public.rotas enable row level security;

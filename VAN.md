@@ -17,6 +17,7 @@ No Supabase → **SQL Editor**, rode nesta ordem:
 2. `supabase/seed.sql`
 3. `supabase/migracoes/003_transporte.sql` (papel "transporte")
 4. `supabase/migracoes/002_rotas.sql` (rotas com iniciar/encerrar)
+5. `supabase/migracoes/004_duas_rotas.sql` (ida **Sede (Campo 21) → Grama** e volta **Grama → Sede (Campo 21)**)
 
 ## 2. Receptor do GPS (uma vez)
 Supabase → **Edge Functions** → **Deploy a new function** → **Via editor**:
@@ -52,7 +53,7 @@ where id = (select id from auth.users where email = 'transporte@app.institutocul
 ```
 No app, entra com o usuário **transporte**.
 
-Para cadastrar outra rota: `insert into public.rotas (id, nome) values ('sul', 'Rota Sul → Sede');`
+Rotas atuais: `sede-grama` (ida) e `grama-sede` (volta). O desenho no mapa vem de `js/rota.js`; as paradas intermediárias são provisórias até gravarmos o trajeto real.
 
 ## 5. Teste
 Com o serviço ligado, abra a aba **Van** com uma conta de família que tenha aluno ativo com van. O selo deve mostrar **"Ao vivo · atualizado agora"**.
