@@ -16,7 +16,7 @@ No Supabase → **SQL Editor**, rode nesta ordem:
 
 ## 2. Receptor do GPS (uma vez)
 Supabase → **Edge Functions** → **Deploy a new function** → **Via editor**:
-- Nome: `van-posicao`
+- Nome: `van-posicao` (no projeto atual ela foi publicada como **`swift-api`** — tudo bem, o que vale é o endereço)
 - Cole o conteúdo de `supabase/functions/van-posicao/index.ts` → **Deploy**
 - Em **Details / Settings** da função: **desligue "Verify JWT"** (o Traccar não faz login; a proteção é o código do aparelho).
 
@@ -33,7 +33,7 @@ Para bloquear um celular perdido: `update public.van_dispositivos set ativo = fa
 1. Instale **Traccar Client** (Play Store / App Store, gratuito).
 2. Configure:
    - **Device identifier**: o código do passo 3
-   - **Server URL**: `https://<projeto>.supabase.co/functions/v1/van-posicao`
+   - **Server URL**: `https://lfobxtowakiwaxdkwuhe.supabase.co/functions/v1/swift-api`
    - **Frequency / Interval**: `10` segundos
    - **Distance**: `0` · **Accuracy**: `High`
 3. Permita localização **"o tempo todo"** e desative a economia de bateria para o Traccar.

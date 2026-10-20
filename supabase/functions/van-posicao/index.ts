@@ -1,5 +1,5 @@
 // Recebe o GPS da van (protocolo OsmAnd, usado pelo app gratuito Traccar Client).
-// O Traccar envia:  https://<projeto>.supabase.co/functions/v1/van-posicao?id=<CODIGO>&lat=..&lon=..&timestamp=..
+// Publicada no Supabase como "swift-api":  https://lfobxtowakiwaxdkwuhe.supabase.co/functions/v1/swift-api
 // - <CODIGO> é o código do aparelho gerado por criar_dispositivo_van(); só o hash fica no banco.
 // - Recusa coordenadas fora da região, leituras velhas e envios em rajada.
 // - Grava só a posição ATUAL (sem histórico).
@@ -25,10 +25,25 @@ const resposta = (status: number, msg = "") => new Response(msg, { status });
 Deno.serve(async (req) => {
   if (req.method !== "GET" && req.method !== "POST") return resposta(405);
 
-  // O Traccar manda os dados na URL; aceita também formulário no corpo.
+  // Traccar Client antigo: dados na URL (ou formulário). Traccar Client 9+: JSON no corpo
+  // { device_id, location: { timestamp, coords: { latitude, longitude } } }.
   const params = new URL(req.url).searchParams;
-  if (req.method === "POST" && (req.headers.get("content-type") || "").includes("form")) {
+  const tipo = req.headers.get("content-type") || "";
+  if (req.method === "POST" && tipo.includes("form")) {
     new URLSearchParams(await req.text()).forEach((v, k) => params.set(k, v));
+  } else if (req.method === "POST" && tipo.includes("json")) {
+    try {
+      const j = JSON.parse(await req.text());
+      const loc = Array.isArray(j.location) ? j.location[0] : j.location;
+      if (j.device_id) params.set("id", String(j.device_id));
+      if (loc?.coords) {
+        params.set("lat", String(loc.coords.latitude));
+        params.set("lon", String(loc.coords.longitude));
+      }
+      if (loc?.timestamp) params.set("timestamp", String(Date.parse(loc.timestamp)));
+    } catch {
+      return resposta(400);
+    }
   }
 
   const codigo = params.get("id") || "";
