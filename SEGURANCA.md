@@ -18,7 +18,7 @@ O app lida com dados de **crianças e adolescentes** (nome, nascimento, escola, 
 ## Ativar o Supabase
 
 1. Crie um projeto em [supabase.com](https://supabase.com) (região São Paulo).
-2. **SQL Editor** → cole e rode `supabase/schema.sql`.
+2. **SQL Editor** → rode `supabase/schema.sql` e depois `supabase/seed.sql`. Para a van, siga [VAN.md](VAN.md).
 3. **Authentication → Providers → Email**: ative "Email OTP" e, em **Email Templates**, use `{{ .Token }}` no corpo (código de 6 dígitos em vez de link).
 4. **Authentication → URL Configuration**: Site URL = `https://ctdasmontanhas.github.io/appinstitutoteste/`.
 5. **Authentication → Rate Limits**: mantenha limites baixos para envio de e-mail.

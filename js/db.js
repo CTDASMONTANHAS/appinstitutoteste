@@ -126,13 +126,21 @@ const DB = (() => {
     assinarVan(callback) {
       if (sb) {
         let ativo = true;
+        // Sem linha = fora de rota (ou família sem permissão: a RLS não devolve nada).
         sb.from("van_posicao_atual").select("lat, lng, atualizado_em, em_rota").eq("rota_id", "norte").maybeSingle()
-          .then(({ data }) => { if (ativo && data) callback(data); });
+          .then(({ data }) => { if (ativo) callback(data || { em_rota: false }); });
         const canal = sb.channel("van-norte")
           .on("postgres_changes", { event: "*", schema: "public", table: "van_posicao_atual", filter: "rota_id=eq.norte" },
             (p) => callback(p.new))
           .subscribe();
-        return () => { ativo = false; sb.removeChannel(canal); };
+        // Sem atualização por 3 min = a monitora parou de enviar.
+        let ultima = null;
+        const vigia = setInterval(() => {
+          if (ultima && Date.now() - new Date(ultima.atualizado_em) > 180000) callback({ ...ultima, em_rota: false });
+        }, 15000);
+        const original = callback;
+        callback = (p) => { if (p && p.em_rota) ultima = p; original(p); };
+        return () => { ativo = false; clearInterval(vigia); sb.removeChannel(canal); };
       }
       const pts = ROTA_VAN.pontos;
       const ciclo = ROTA_VAN.duracaoSeg * 1000 * 0.25; // demo acelerado: volta completa em ~6 min

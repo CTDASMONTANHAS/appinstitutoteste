@@ -5,7 +5,7 @@
 -- Rodar no SQL Editor do Supabase (projeto novo).
 -- =====================================================================
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 -- ---------- Papéis ----------
 create type papel_usuario as enum ('responsavel', 'professor', 'monitora', 'coordenacao');
@@ -140,6 +140,28 @@ language sql stable security definer set search_path = public as $$
                  where a.responsavel_id = auth.uid() and a.usa_van and m.status = 'ativa')
 $$;
 
+-- Aparelhos da van autorizados a enviar GPS. Guarda só o HASH do código do aparelho.
+create table public.van_dispositivos (
+  id uuid primary key default gen_random_uuid(),
+  rota_id text not null,
+  nome text not null,
+  token_hash text not null unique,
+  ativo boolean not null default true,
+  criado_em timestamptz not null default now()
+);
+
+-- Gera o código de um aparelho novo. Mostra o código UMA vez; no banco fica só o hash.
+-- Rodar no SQL Editor:  select public.criar_dispositivo_van('norte', 'Celular da monitora');
+create or replace function public.criar_dispositivo_van(p_rota text, p_nome text) returns text
+language plpgsql security definer set search_path = public as $$
+declare v_token text := encode(extensions.gen_random_bytes(24), 'hex');
+begin
+  insert into van_dispositivos (rota_id, nome, token_hash)
+  values (p_rota, p_nome, encode(extensions.digest(v_token, 'sha256'), 'hex'));
+  return v_token;
+end $$;
+revoke all on function public.criar_dispositivo_van(text, text) from public, anon, authenticated;
+
 -- ---------- Ativar RLS em tudo ----------
 alter table public.perfis enable row level security;
 alter table public.projetos enable row level security;
@@ -150,6 +172,7 @@ alter table public.matriculas enable row level security;
 alter table public.frequencias enable row level security;
 alter table public.avisos enable row level security;
 alter table public.van_posicao_atual enable row level security;
+alter table public.van_dispositivos enable row level security;  -- sem políticas: só a função do servidor acessa
 
 -- Perfis: cada um vê e edita o próprio (sem poder trocar o papel); equipe vê todos.
 create policy perfis_ler on public.perfis for select using (id = auth.uid() or public.eh_equipe());
@@ -187,9 +210,11 @@ create policy avisos_ler on public.avisos for select using (
 create policy avisos_equipe on public.avisos for all using (public.eh_equipe()) with check (public.eh_equipe());
 
 -- Van: posição só para famílias com aluno ATIVO que usa a van (e equipe/monitora),
--- e só enquanto a van está em rota. Escrita apenas pela monitora.
+-- e só enquanto o aparelho está enviando (até 3 min sem sinal = fora de rota).
+-- A gravação normal é feita pela função van-posicao (aparelho autenticado por código).
 create policy van_ler on public.van_posicao_atual for select using (
-  public.eh_equipe() or public.meu_papel() = 'monitora' or (em_rota and public.tenho_aluno_na_van()));
+  public.eh_equipe() or public.meu_papel() = 'monitora'
+  or (em_rota and atualizado_em > now() - interval '3 minutes' and public.tenho_aluno_na_van()));
 create policy van_monitora_ins on public.van_posicao_atual for insert
   with check (public.meu_papel() = 'monitora' and monitora_id = auth.uid());
 create policy van_monitora_upd on public.van_posicao_atual for update

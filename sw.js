@@ -1,6 +1,6 @@
 // Cache do "esqueleto" do app; notícias e imagens vêm sempre da rede.
-const CACHE = "icm-app-v5";
-const ARQUIVOS = ["./", "index.html", "css/app.css?v=5", "js/config.js?v=3", "js/data.js?v=3", "js/rota.js?v=3", "js/db.js?v=4", "js/app.js?v=5", "manifest.json", "icons/logo-transparente.png", "icons/icon-192.png", "icons/favicon.png"];
+const CACHE = "icm-app-v6";
+const ARQUIVOS = ["./", "index.html", "css/app.css?v=5", "js/config.js?v=3", "js/data.js?v=3", "js/rota.js?v=3", "js/db.js?v=5", "js/app.js?v=5", "manifest.json", "icons/logo-transparente.png", "icons/icon-192.png", "icons/favicon.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ARQUIVOS)).then(() => self.skipWaiting()));
