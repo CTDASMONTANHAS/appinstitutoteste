@@ -190,9 +190,13 @@ const DB = (() => {
           .subscribe();
         return () => { ativo = false; clearInterval(timer); sb.removeChannel(canal); };
       }
-      // Demo: anda pela rota iniciada no painel (ou pela rota padrão).
+      // Demo: anda pela rota iniciada no painel (ou pela rota padrão, se o painel
+      // nunca foi usado). Rota encerrada no painel = van fora de rota.
       const tick = () => {
-        const rotaId = (sess.get("rotas", []).find((r) => r.em_andamento) || { id: ROTA_PADRAO }).id;
+        const rotas = sess.get("rotas", null);
+        const andamento = rotas?.find((r) => r.em_andamento);
+        if (rotas && !andamento) return callback({ em_rota: false });
+        const rotaId = (andamento || { id: ROTA_PADRAO }).id;
         const pts = ROTAS_VAN[rotaId].pontos;
         const ciclo = ROTAS_VAN[rotaId].duracaoSeg * 1000 * 0.25; // acelerado: volta completa em ~6 min
         const f = (Date.now() % ciclo) / ciclo;

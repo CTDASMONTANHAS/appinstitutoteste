@@ -1113,5 +1113,14 @@ Promise.all([carregarSessao().finally(render), contagemAbertura()])
   .finally(() => $("#splash")?.classList.add("hide"));
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // Procura versão nova ao abrir e sempre que o app volta para a tela;
+  // quando a versão nova assume, recarrega uma vez.
+  const haviaControle = Boolean(navigator.serviceWorker.controller);
+  let recarregou = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (haviaControle && !recarregou) { recarregou = true; location.reload(); }
+  });
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+  }).catch(() => {});
 }
