@@ -28,7 +28,8 @@ create policy rotas_equipe on public.rotas for all using (public.eh_equipe()) wi
 
 create or replace function public.rota_em_andamento(p_rota text) returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (select 1 from rotas where id = p_rota and em_andamento)
+  select auth.uid() is not null
+     and exists (select 1 from rotas where id = p_rota and em_andamento)
 $$;
 
 create or replace function public.pode_operar_van() returns boolean
