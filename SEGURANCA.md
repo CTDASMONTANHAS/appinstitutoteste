@@ -6,7 +6,7 @@ O app lida com dados de **crianças e adolescentes** (nome, nascimento, escola, 
 
 | Camada | Como protege |
 |---|---|
-| **Login sem senha** | Código de uso único enviado ao e-mail do responsável (Supabase Auth). Não há senha para vazar. Limite de tentativas no app e no servidor. |
+| **Login** | Usuário e senha (Supabase Auth, senha com hash no servidor, mínimo 6 caracteres). Cadastro aberto **desligado**: contas só são criadas pela coordenação. Freio de tentativas no app e limite no servidor. Login dos alunos: **não** usar CPF (ver abaixo). |
 | **RLS (Row Level Security)** | Ativado em **todas** as tabelas (`supabase/schema.sql`). Cada família só lê os próprios alunos; professor só os alunos ativos das suas turmas; coordenação vê tudo. |
 | **Escrita controlada** | Ninguém insere aluno direto na tabela. A matrícula só entra pela função `solicitar_matricula()`, que valida, limita a 5 pedidos por responsável por dia e grava sempre como **pendente**. Só a coordenação ativa. |
 | **Papéis imutáveis pelo usuário** | O usuário não consegue mudar o próprio papel (responsável → coordenação). Papéis são definidos pela coordenação. |
@@ -32,3 +32,8 @@ O app lida com dados de **crianças e adolescentes** (nome, nascimento, escola, 
 - [ ] Termo de uso de dados revisado juridicamente.
 - [ ] Domínio próprio com HTTPS e cabeçalhos de segurança (no GitHub Pages a CSP vai por `<meta>`).
 - [ ] Provedor de mapa com chave própria se o uso crescer (os blocos do OpenStreetMap têm política de uso justo).
+
+## Login dos alunos (decisão pendente)
+Proposta inicial: matrícula + 4 primeiros dígitos do CPF. **Não recomendado**: só 10 mil combinações (descobertas por tentativa) e o CPF é conhecido por muita gente — daria acesso à posição da van. Alternativas:
+- matrícula + senha de 6 dígitos criada pela família no 1º acesso; ou
+- matrícula + código de 6 dígitos enviado ao WhatsApp do responsável.

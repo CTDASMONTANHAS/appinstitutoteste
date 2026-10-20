@@ -20,8 +20,13 @@ const DB = (() => {
   const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
   const limpar = (v, max = 120) => String(v ?? "").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, max);
 
-  // Limite simples no cliente contra cliques repetidos; o limite de verdade é do Supabase Auth.
-  let ultimoEnvio = 0;
+  // Usuário curto (ex.: "admin") vira um e-mail interno; no Supabase o usuário é criado
+  // com esse e-mail. Nenhum e-mail é enviado para ele.
+  const DOMINIO_LOGIN = "app.institutoculturaldasmontanhas.org";
+  const paraEmail = (u) => (u.includes("@") ? u : `${u}@${DOMINIO_LOGIN}`).toLowerCase();
+
+  // Freio no aparelho contra tentativas seguidas; o limite de verdade é do Supabase Auth.
+  let falhas = 0, bloqueadoAte = 0;
 
   const ALUNO_PADRAO = {
     id: "demo-aluno-1", nome: "Aluno(a) Exemplo", matricula: "ICM-2026-0147",
@@ -34,30 +39,40 @@ const DB = (() => {
 
     validarEmail: (e) => EMAIL_RE.test(String(e).trim()),
 
-    async enviarCodigo(email) {
-      email = limpar(email, 254).toLowerCase();
-      if (!EMAIL_RE.test(email)) throw new Error("E-mail inválido.");
-      if (Date.now() - ultimoEnvio < 30000) throw new Error("Aguarde 30 segundos para pedir outro código.");
-      ultimoEnvio = Date.now();
-      if (sb) {
-        const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-        if (error) throw new Error("Não foi possível enviar o código agora.");
+    // Login com usuário (ou e-mail) e senha.
+    async entrar(usuario, senha) {
+      usuario = limpar(usuario, 254).replace(/\s+/g, "");
+      if (!usuario || !senha) throw new Error("Preencha usuário e senha.");
+      if (Date.now() < bloqueadoAte) {
+        throw new Error(`Muitas tentativas. Aguarde ${Math.ceil((bloqueadoAte - Date.now()) / 1000)} s.`);
       }
-      return email;
-    },
-
-    async verificarCodigo(email, codigo) {
-      if (!/^\d{6}$/.test(codigo)) throw new Error("O código tem 6 números.");
+      const email = paraEmail(usuario);
+      if (!EMAIL_RE.test(email)) throw new Error("Usuário inválido.");
       if (sb) {
-        const { data, error } = await sb.auth.verifyOtp({ email, token: codigo, type: "email" });
-        if (error) throw new Error("Código inválido ou expirado.");
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+        if (error) {
+          falhas++;
+          if (falhas >= 5) { bloqueadoAte = Date.now() + 60000 * Math.min(falhas - 4, 10); }
+          throw new Error(error.status === 429 ? "Muitas tentativas. Tente mais tarde." : "Usuário ou senha incorretos.");
+        }
+        falhas = 0;
         return data.user;
       }
-      const u = { email, nome: email.split("@")[0] };
+      const u = { email, nome: usuario };
       sess.set("usuario", u);
       sess.set("saiu", null);
       if (!sess.get("alunos", null)) sess.set("alunos", [ALUNO_PADRAO]);
       return u;
+    },
+
+    // Papel do usuário logado (responsavel, professor, monitora, coordenacao).
+    async meuPapel() {
+      if (!sb) return "responsavel";
+      const { data: u } = await sb.auth.getUser();
+      if (!u.user) return null;
+      // Filtra pelo próprio id: a coordenação enxerga todos os perfis.
+      const { data } = await sb.from("perfis").select("papel").eq("id", u.user.id).maybeSingle();
+      return data?.papel || "responsavel";
     },
 
     async usuario() {

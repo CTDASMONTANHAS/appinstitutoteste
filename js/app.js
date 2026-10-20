@@ -150,9 +150,12 @@ const skeletonNews = (n = 3) => Array.from({ length: n }, () => `<div class="ske
 let USUARIO = null;
 let ALUNOS = [];
 let alunoSel = 0;
+let PAPEL = null;
+const ehEquipe = () => PAPEL === "coordenacao" || PAPEL === "monitora";
 
 async function carregarSessao() {
   USUARIO = await DB.usuario();
+  PAPEL = USUARIO ? await DB.meuPapel().catch(() => null) : null;
   ALUNOS = USUARIO ? await DB.meusAlunos().catch(() => []) : [];
   if (alunoSel >= ALUNOS.length) alunoSel = 0;
 }
@@ -444,7 +447,7 @@ function carregarLeaflet() {
 
 async function telaVan() {
   if (!USUARIO) return telaPedirLogin("A localização da van é exclusiva para famílias de alunos matriculados que usam o transporte.", "van");
-  const aluno = ALUNOS.find((a) => a.usaVan && a.status === "ativa");
+  const aluno = ALUNOS.find((a) => a.usaVan && a.status === "ativa") || (ehEquipe() ? { pontoVan: "Sede do Instituto" } : null);
   if (!aluno) {
     view.innerHTML = `<div class="auth"><div class="success"><div class="ok">${icon("bus")}</div><h2>Van indisponível</h2>
       <p class="muted">O mapa aparece para alunos com matrícula ativa que usam o transporte gratuito. Para incluir a van, fale com a secretaria.</p>
@@ -639,65 +642,39 @@ function telaMatricula(params) {
   render();
 }
 
-/* ----- Login por e-mail + código ----- */
+/* ----- Login por usuário e senha ----- */
 function telaPedirLogin(motivo, voltar) {
   view.innerHTML = `
     <div class="auth">
       <div class="auth-serra">${serra()}</div>
       <img class="auth-logo" src="icons/logo-transparente.png" alt="Instituto Cultural das Montanhas">
-      <h2>Área da família</h2>
+      <h2>Entrar</h2>
       <p class="sub">${esc(motivo)}</p>
-      <form id="f-email" novalidate>
-        <div class="input-wrap">${icon("mail")}<input id="l-email" type="email" inputmode="email" autocomplete="email" placeholder="Seu e-mail" maxlength="254" required></div>
-        <button class="btn block" type="submit" style="margin-top:22px">Receber código ${icon("arrow")}</button>
+      <form id="f-login" novalidate>
+        <div class="input-wrap">${icon("user")}<input id="l-usuario" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Usuário" maxlength="254" required></div>
+        <div class="input-wrap">${icon("lock")}<input id="l-senha" type="password" autocomplete="current-password" placeholder="Senha" maxlength="128" required></div>
+        <button class="btn block" type="submit" style="margin-top:22px">Entrar ${icon("arrow")}</button>
       </form>
-      <p class="small muted" style="text-align:center;margin-top:18px">${icon("lock", 'style="width:13px;height:13px;vertical-align:-2px"')} Sem senha: enviamos um código de uso único para o seu e-mail.</p>
-      ${DB.modo === "demo" ? protoNote("Demonstração: use qualquer e-mail e qualquer código de 6 números.") : ""}
+      ${DB.modo === "demo" ? protoNote("Demonstração: qualquer usuário e senha entram com a família de exemplo.") : ""}
     </div>`;
-  $("#f-email").addEventListener("submit", async (e) => {
+  $("#f-login").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const btn = e.submitter || e.target.querySelector("[type=submit]"); btn.disabled = true;
-    try { const email = await DB.enviarCodigo($("#l-email").value); telaCodigo(email, voltar); }
-    catch (err) { btn.disabled = false; toast(err.message); }
-  });
-}
-
-function telaCodigo(email, voltar) {
-  view.innerHTML = `
-    <div class="auth">
-      <h2>Verificar acesso</h2>
-      <p class="sub">Digite o código de 6 números enviado para<br><b style="color:var(--text-2)">${esc(email)}</b></p>
-      <div class="otp">${[0, 1, 2, 3, 4, 5].map((i) => `<input inputmode="numeric" autocomplete="one-time-code" aria-label="Dígito ${i + 1}" data-otp="${i}">`).join("")}</div>
-      <button class="btn block" id="btn-verificar">Verificar ${icon("arrow")}</button>
-      <button class="link-btn" id="btn-outro">Usar outro e-mail</button>
-    </div>`;
-  const campos = [...view.querySelectorAll("[data-otp]")];
-  campos[0].focus();
-  let tentativas = 0;
-  const verificar = async () => {
-    const codigo = campos.map((c) => c.value).join("");
-    if (codigo.length < 6) return toast("Digite os 6 números do código.");
-    if (++tentativas > 5) { toast("Muitas tentativas. Peça um novo código."); return telaPedirLogin("Peça um novo código.", voltar); }
+    const btn = e.submitter || e.target.querySelector("[type=submit]");
+    btn.disabled = true;
+    const senha = $("#l-senha");
     try {
-      await DB.verificarCodigo(email, codigo);
+      await DB.entrar($("#l-usuario").value, senha.value);
+      senha.value = "";
       await carregarSessao();
-      toast("Acesso liberado!");
+      toast("Bem-vindo(a)!");
       if (location.hash === `#/${voltar}`) render(); else location.hash = `#/${voltar}`;
-    } catch (err) { toast(err.message); campos.forEach((c) => (c.value = "")); campos[0].focus(); }
-  };
-  campos.forEach((c, i) => {
-    c.addEventListener("input", () => {
-      const dig = c.value.replace(/\D/g, "").split("");
-      c.value = "";
-      let j = i;
-      dig.forEach((x) => { if (campos[j]) campos[j++].value = x; });
-      (campos[Math.min(j, campos.length - 1)] || c).focus();
-      if (campos.every((x) => x.value)) verificar();
-    });
-    c.addEventListener("keydown", (e) => { if (e.key === "Backspace" && !c.value && campos[i - 1]) campos[i - 1].focus(); });
+    } catch (err) {
+      btn.disabled = false;
+      senha.value = "";
+      senha.focus();
+      toast(err.message);
+    }
   });
-  $("#btn-verificar").addEventListener("click", verificar);
-  $("#btn-outro").addEventListener("click", () => telaPedirLogin("Entre com seu e-mail.", voltar));
 }
 
 /* ----- Perfil ----- */
@@ -705,6 +682,7 @@ function telaPerfil() {
   if (!USUARIO) return telaPedirLogin("Entre para ver seus alunos, carteirinhas e matrículas.", "perfil");
   view.innerHTML = `
     <div class="perfil-topo">${serra("serra-perfil")}<img src="icons/logo-transparente.png" alt="Instituto Cultural das Montanhas"></div>
+    ${ehEquipe() ? `<div class="card gold"><span class="eyebrow">Acesso da equipe</span><div style="font-weight:800;margin-top:6px">${PAPEL === "coordenacao" ? "Coordenação" : "Monitora da van"}</div><p class="small muted" style="margin:4px 0 0">Você vê a van em tempo real e, como coordenação, todos os alunos e matrículas.</p></div>` : ""}
     <section class="section">
       <div class="section-head"><h2>Meus alunos</h2></div>
       ${ALUNOS.length ? ALUNOS.map((a) => `

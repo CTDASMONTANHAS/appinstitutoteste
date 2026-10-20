@@ -9,7 +9,7 @@
 const APP_CONFIG = {
   // false = modo demonstração (sem login). Mude para true quando o login por e-mail
   // estiver configurado no Supabase: Aulas, Van e Perfil passam a exigir login.
-  usarSupabase: false,
+  usarSupabase: true,
   supabaseUrl: "https://lfobxtowakiwaxdkwuhe.supabase.co",
   supabaseAnonKey: "sb_publishable_Zx2qwelgdx9zHLomaf3TOg_ZDDTQZe8",
 };
