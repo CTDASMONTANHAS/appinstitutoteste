@@ -117,18 +117,34 @@ function sanitize(html) {
 }
 
 /* ---------- Blog (API pública do site) ---------- */
+// As notícias vêm direto do blog do site. A lista baixada vale por 5 minutos;
+// depois disso (ou quando o app volta para a tela) busca de novo.
 const cacheNoticias = new Map();
+const VALIDADE_NOTICIAS = 5 * 60 * 1000;
 async function buscarNoticias({ categoria = "", limit = 20 } = {}) {
   const chave = `${categoria}|${limit}`;
-  if (cacheNoticias.has(chave)) return cacheNoticias.get(chave);
+  const guardado = cacheNoticias.get(chave);
+  if (guardado && Date.now() - guardado.em < VALIDADE_NOTICIAS) return guardado.posts;
   const qs = new URLSearchParams({ page: "1", limit: String(limit) });
   if (categoria) qs.set("categoria", categoria);
-  const r = await fetch(`${BLOG_API}?${qs}`, { credentials: "omit", referrerPolicy: "no-referrer" });
+  const r = await fetch(`${BLOG_API}?${qs}`, { credentials: "omit", referrerPolicy: "no-referrer", cache: "no-cache" });
   if (!r.ok) throw new Error("blog " + r.status);
   const posts = (await r.json()).posts || [];
-  cacheNoticias.set(chave, posts);
+  cacheNoticias.set(chave, { posts, em: Date.now() });
   return posts;
 }
+
+// App voltou para a tela depois de um tempo: descarta a lista e atualiza a tela atual,
+// se ela mostra notícias.
+let saiuDaTelaEm = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") { saiuDaTelaEm = Date.now(); return; }
+  if (saiuDaTelaEm && Date.now() - saiuDaTelaEm > 60000) {
+    cacheNoticias.clear();
+    const rota = (location.hash.replace(/^#\/?/, "") || "inicio").split(/[/?]/)[0];
+    if (["inicio", "noticias", "aulas"].includes(rota)) render();
+  }
+});
 async function buscarNoticia(slug) {
   const r = await fetch(`${BLOG_API}?slug=${encodeURIComponent(slug)}`, { credentials: "omit", referrerPolicy: "no-referrer" });
   if (!r.ok) throw new Error("post " + r.status);
