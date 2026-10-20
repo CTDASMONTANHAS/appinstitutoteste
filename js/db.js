@@ -65,6 +65,36 @@ const DB = (() => {
       return u;
     },
 
+    /* ----- Rotas da van (monitora/coordenação) ----- */
+    async rotas() {
+      if (!sb) return sess.get("rotas", [{ id: "norte", nome: ROTA_VAN.nome, em_andamento: false, iniciada_em: null }]);
+      const { data, error } = await sb.from("rotas").select("id, nome, em_andamento, iniciada_em").eq("ativa", true).order("nome");
+      if (error) throw new Error("Não foi possível carregar as rotas.");
+      return data;
+    },
+    async iniciarRota(id) {
+      if (!sb) {
+        sess.set("rotas", (await this.rotas()).map((r) => ({ ...r, em_andamento: r.id === id, iniciada_em: r.id === id ? new Date().toISOString() : null })));
+        return;
+      }
+      const { error } = await sb.rpc("iniciar_rota", { p_rota: id });
+      if (error) throw new Error(error.message.includes("permiss") ? "Seu usuário não pode iniciar rotas." : "Não foi possível iniciar a rota.");
+    },
+    async encerrarRota(id) {
+      if (!sb) {
+        sess.set("rotas", (await this.rotas()).map((r) => ({ ...r, em_andamento: false, iniciada_em: null })));
+        return;
+      }
+      const { error } = await sb.rpc("encerrar_rota", { p_rota: id });
+      if (error) throw new Error("Não foi possível encerrar a rota.");
+    },
+    // Última posição recebida (para a monitora conferir se o GPS está chegando).
+    async ultimaPosicao() {
+      if (!sb) return null;
+      const { data } = await sb.from("van_posicao_atual").select("rota_id, atualizado_em").order("atualizado_em", { ascending: false }).limit(1).maybeSingle();
+      return data;
+    },
+
     // Papel do usuário logado (responsavel, professor, monitora, coordenacao).
     async meuPapel() {
       if (!sb) return "responsavel";
@@ -141,21 +171,24 @@ const DB = (() => {
     assinarVan(callback) {
       if (sb) {
         let ativo = true;
-        // Sem linha = fora de rota (ou família sem permissão: a RLS não devolve nada).
-        sb.from("van_posicao_atual").select("lat, lng, atualizado_em, em_rota").eq("rota_id", "norte").maybeSingle()
-          .then(({ data }) => { if (ativo) callback(data || { em_rota: false }); });
-        const canal = sb.channel("van-norte")
-          .on("postgres_changes", { event: "*", schema: "public", table: "van_posicao_atual", filter: "rota_id=eq.norte" },
-            (p) => callback(p.new))
+        const entregar = (p) => {
+          if (!ativo) return;
+          // Sem linha, rota encerrada ou 3 min sem sinal = fora de rota.
+          const vale = p && p.em_rota && Date.now() - new Date(p.atualizado_em) < 180000;
+          callback(vale ? p : { em_rota: false });
+        };
+        // Consulta a cada 10 s (cobre o "Encerrar rota", que apaga a posição) +
+        // Realtime para mover a van assim que chega posição nova.
+        const consultar = () => sb.from("van_posicao_atual").select("rota_id, lat, lng, atualizado_em, em_rota")
+          .order("atualizado_em", { ascending: false }).limit(1).maybeSingle()
+          .then(({ data }) => entregar(data));
+        consultar();
+        const timer = setInterval(consultar, 10000);
+        const canal = sb.channel("van")
+          .on("postgres_changes", { event: "*", schema: "public", table: "van_posicao_atual" },
+            (p) => (p.eventType === "DELETE" ? entregar(null) : entregar(p.new)))
           .subscribe();
-        // Sem atualização por 3 min = a monitora parou de enviar.
-        let ultima = null;
-        const vigia = setInterval(() => {
-          if (ultima && Date.now() - new Date(ultima.atualizado_em) > 180000) callback({ ...ultima, em_rota: false });
-        }, 15000);
-        const original = callback;
-        callback = (p) => { if (p && p.em_rota) ultima = p; original(p); };
-        return () => { ativo = false; clearInterval(vigia); sb.removeChannel(canal); };
+        return () => { ativo = false; clearInterval(timer); sb.removeChannel(canal); };
       }
       const pts = ROTA_VAN.pontos;
       const ciclo = ROTA_VAN.duracaoSeg * 1000 * 0.25; // demo acelerado: volta completa em ~6 min

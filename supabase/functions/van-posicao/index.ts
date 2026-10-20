@@ -61,16 +61,22 @@ Deno.serve(async (req) => {
   }
 
   const { data: disp } = await supabase
-    .from("van_dispositivos").select("rota_id").eq("token_hash", await sha256(codigo)).eq("ativo", true).maybeSingle();
+    .from("van_dispositivos").select("id").eq("token_hash", await sha256(codigo)).eq("ativo", true).maybeSingle();
   if (!disp) return resposta(401);
 
-  // No máximo uma gravação a cada 3 segundos por rota.
+  // Só grava se a monitora iniciou uma rota no app. Sem rota em andamento, ignora
+  // (ex.: Traccar esquecido ligado depois de encerrar a rota). Uma van por vez.
+  const { data: rota } = await supabase
+    .from("rotas").select("id").eq("em_andamento", true).order("iniciada_em", { ascending: false }).limit(1).maybeSingle();
+  if (!rota) return resposta(200, "fora de rota");
+
+  // No máximo uma gravação a cada 3 segundos.
   const { data: atual } = await supabase
-    .from("van_posicao_atual").select("atualizado_em").eq("rota_id", disp.rota_id).maybeSingle();
+    .from("van_posicao_atual").select("atualizado_em").eq("rota_id", rota.id).maybeSingle();
   if (atual && Date.now() - new Date(atual.atualizado_em).getTime() < 3000) return resposta(200, "ok");
 
   const { error } = await supabase.from("van_posicao_atual").upsert({
-    rota_id: disp.rota_id, lat, lng, em_rota: true, atualizado_em: new Date().toISOString(),
+    rota_id: rota.id, lat, lng, em_rota: true, atualizado_em: new Date().toISOString(),
   });
   return error ? resposta(500) : resposta(200, "ok");
 });

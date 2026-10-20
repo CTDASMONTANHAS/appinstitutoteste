@@ -428,6 +428,7 @@ function letivoHtml(e) {
 
 /* ----- Van em tempo real ----- */
 let pararVan = null;
+let pararPainel = null;
 let leafletPronto = null;
 function carregarLeaflet() {
   if (window.L) return Promise.resolve();
@@ -461,6 +462,7 @@ async function telaVan() {
   view.innerHTML = `
     <div class="mapa-wrap"><div id="mapa" class="mapa" role="img" aria-label="Mapa de Afonso Cláudio com a posição da van"></div>
       <div class="mapa-status" id="van-status">${icon("bus")}<span>Localizando a van…</span></div></div>
+    ${ehEquipe() ? `<div class="card painel-rota mt-16" id="painel-rota"><div class="skeleton" style="height:90px"></div></div>` : ""}
     <div class="card eta-card mt-16">
       <div><span class="eyebrow">Seu ponto · ${esc(minha.nome)}</span><div class="eta-num" id="eta">—</div><div class="small muted" id="eta-sub">calculando</div></div>
       <div class="eta-ico">${icon("pin")}</div>
@@ -505,6 +507,8 @@ async function telaVan() {
     return bi;
   };
 
+  if (ehEquipe()) painelRota();
+
   pararVan = DB.assinarVan((pos) => {
     if (!$("#mapa")) return;
     const st = $("#van-status");
@@ -532,9 +536,60 @@ async function telaVan() {
   });
 }
 
+/* ----- Painel da monitora: iniciar e encerrar rota ----- */
+async function painelRota() {
+  const box = $("#painel-rota");
+  if (!box) return;
+  const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  let rotas;
+  try { rotas = await DB.rotas(); } catch (err) { box.innerHTML = `<p class="muted small">${esc(err.message)}</p>`; return; }
+  if (!$("#painel-rota")) return;
+  const andamento = rotas.find((r) => r.em_andamento);
+
+  if (!andamento) {
+    box.innerHTML = `
+      <span class="eyebrow">Monitora · rota parada</span>
+      <div class="field mt-12" style="margin-bottom:14px"><label for="sel-rota">Qual rota vai fazer?</label>
+        <select id="sel-rota">${rotas.map((r) => `<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join("")}</select></div>
+      <button class="btn gold block" id="btn-iniciar">${icon("flag")} Iniciar rota</button>
+      <p class="small muted" style="margin:12px 0 0">Depois de iniciar, ligue o <b style="color:var(--text-2)">Traccar Client</b>. Sem rota iniciada, nenhuma posição aparece para as famílias.</p>`;
+    $("#btn-iniciar").addEventListener("click", async (e) => {
+      e.currentTarget.disabled = true;
+      try { await DB.iniciarRota($("#sel-rota").value); toast("Rota iniciada! Ligue o Traccar."); painelRota(); }
+      catch (err) { e.currentTarget.disabled = false; toast(err.message); }
+    });
+    return;
+  }
+
+  const sinal = await DB.ultimaPosicao().catch(() => null);
+  if (!$("#painel-rota")) return;
+  const seg = sinal ? Math.round((Date.now() - new Date(sinal.atualizado_em)) / 1000) : null;
+  const gps = DB.modo === "demo" ? `<span class="ao-vivo"></span> GPS simulado`
+    : seg === null ? `<span class="ponto-alerta"></span> Aguardando o GPS — o Traccar está ligado?`
+    : seg > 60 ? `<span class="ponto-alerta"></span> Último sinal há ${Math.round(seg / 60)} min — confira o Traccar`
+    : `<span class="ao-vivo"></span> GPS chegando · há ${seg}s`;
+  box.innerHTML = `
+    <div class="row-between"><span class="eyebrow">Rota em andamento</span><span class="chip gold">desde ${hora(andamento.iniciada_em)}</span></div>
+    <div class="tc-tit" style="margin-top:8px">${esc(andamento.nome)}</div>
+    <p class="small gps-linha">${gps}</p>
+    <button class="btn block" id="btn-encerrar" style="margin-top:14px">${icon("check")} Encerrar rota</button>`;
+  $("#btn-encerrar").addEventListener("click", () => {
+    const bg = sheet(`<h3>Encerrar a rota?</h3>
+      <p class="muted">A van some do mapa das famílias na hora. Depois, desligue o Traccar no celular.</p>
+      <div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-close>Voltar</button><button class="btn gold" style="flex:1" data-sim>Encerrar</button></div>`);
+    bg.querySelector("[data-sim]").addEventListener("click", async (e) => {
+      e.currentTarget.disabled = true;
+      try { await DB.encerrarRota(andamento.id); bg.remove(); toast("Rota encerrada. Desligue o Traccar."); painelRota(); }
+      catch (err) { e.currentTarget.disabled = false; toast(err.message); }
+    });
+  });
+  clearTimeout(pararPainel);
+  pararPainel = setTimeout(painelRota, 10000);
+}
+
 /* ----- Matrícula (assistente em etapas) ----- */
 function telaMatricula(params) {
-  if (!USUARIO) return telaPedirLogin("Para sua segurança, a matrícula é feita pela conta do responsável. Entre com seu e-mail para começar.", "matricula");
+  if (!USUARIO) return telaPedirLogin("Para sua segurança, a matrícula é feita pela conta do responsável. Entre para começar.", "matricula");
   const d = { projetoId: params.get("projeto") || "", turmaId: "", usaVan: false, pontoVan: "", cadUnico: false, autorizaImagem: false, aceiteLgpd: false };
   let passo = 0;
   const PASSOS = ["Responsável", "Aluno", "Turma", "Transporte", "Termos"];
@@ -682,7 +737,7 @@ function telaPerfil() {
   if (!USUARIO) return telaPedirLogin("Entre para ver seus alunos, carteirinhas e matrículas.", "perfil");
   view.innerHTML = `
     <div class="perfil-topo">${serra("serra-perfil")}<img src="icons/logo-transparente.png" alt="Instituto Cultural das Montanhas"></div>
-    ${ehEquipe() ? `<div class="card gold"><span class="eyebrow">Acesso da equipe</span><div style="font-weight:800;margin-top:6px">${PAPEL === "coordenacao" ? "Coordenação" : "Monitora da van"}</div><p class="small muted" style="margin:4px 0 0">Você vê a van em tempo real e, como coordenação, todos os alunos e matrículas.</p></div>` : ""}
+    ${ehEquipe() ? `<div class="card gold"><span class="eyebrow">Acesso da equipe</span><div style="font-weight:800;margin-top:6px">${PAPEL === "coordenacao" ? "Coordenação" : "Monitora da van"}</div><p class="small muted" style="margin:4px 0 12px">Você vê a van em tempo real e pode iniciar e encerrar as rotas.</p><a class="btn gold block" href="#/van">${icon("bus")} Operar a van</a></div>` : ""}
     <section class="section">
       <div class="section-head"><h2>Meus alunos</h2></div>
       ${ALUNOS.length ? ALUNOS.map((a) => `
@@ -980,6 +1035,7 @@ const MAE = { projeto: "inicio", projetos: "inicio", noticia: "inicio", noticias
 
 function render() {
   if (pararVan) { pararVan(); pararVan = null; }
+  clearTimeout(pararPainel);
   const hash = location.hash.replace(/^#\/?/, "") || "inicio";
   const [caminho, query = ""] = hash.split("?");
   const [rota, param] = caminho.split("/");

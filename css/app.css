@@ -616,3 +616,6 @@ html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-siz
 a, button, input, select, textarea, label { touch-action: manipulation; }
 input, select, textarea { font-size: 16px !important; }
 .otp input { font-size: 22px !important; }
+/* Painel da monitora */
+.painel-rota .gps-linha { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; color: var(--text-2); }
+.ponto-alerta { width: 8px; height: 8px; border-radius: 50%; background: #e0a43a; box-shadow: 0 0 8px #e0a43a; flex: none; }
