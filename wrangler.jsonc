@@ -2,6 +2,9 @@
 {
   "name": "appinstitutodasmontanhas",
   "compatibility_date": "2026-09-01",
+  // Endereço público appinstitutodasmontanhas.<conta>.workers.dev; sem URLs de prévia públicas.
+  "workers_dev": true,
+  "preview_urls": false,
   // Monta dist/ só com os arquivos do app antes de publicar.
   "build": { "command": "bash build.sh" },
   "assets": {
